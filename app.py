@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, g
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -16,6 +16,9 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    
+    def __repr__(self):
+        return f'<User {self.username}>'
 
 class Reagent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -57,17 +60,17 @@ def init_db():
         db.create_all()
         # Создаем администратора по умолчанию
         if not User.query.filter_by(username='user').first():
-            # admin = User(
-            #     username='admin',
-            #     password=generate_password_hash('admin'),
-            #     is_admin=True
-            # )
+            admin = User(
+                username='admin',
+                password=generate_password_hash('admin'),
+                is_admin=True
+            )
             user = User(
                 username='user',
                 password=generate_password_hash('user'),
                 is_admin=False
             )
-            # db.session.add(admin)
+            db.session.add(admin)
             db.session.add(user)
             db.session.commit()
             
@@ -89,6 +92,12 @@ def init_db():
             db.session.commit()
         print("База данных инициализирована")
 
+@app.before_request
+def before_request():
+    g.current_user = None
+    if 'user_id' in session:
+        g.current_user = User.query.get(session['user_id'])
+
 # Система аутентификации
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -105,6 +114,72 @@ def login():
         else:
             flash('Неверное имя пользователя или пароль', 'danger')
     return render_template('login.html')
+
+# Управление пользователями
+@app.route('/users')
+def users():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    current_user = User.query.get(session['user_id'])
+    if not current_user.is_admin:
+        flash('Доступ запрещен: требуется права администратора', 'danger')
+        return redirect(url_for('index'))
+    
+    all_users = User.query.all()
+    return render_template('users.html', users=all_users, current_user=current_user)
+
+@app.route('/add_user', methods=['GET', 'POST'])
+def add_user():  # Имя функции должно совпадать с url_for('add_user')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    current_user = User.query.get(session['user_id'])
+    if not current_user.is_admin:
+        flash('Требуются права администратора', 'danger')
+        return redirect(url_for('users'))
+    
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        is_admin = 'is_admin' in request.form
+        
+        if User.query.filter_by(username=username).first():
+            flash('Пользователь уже существует', 'danger')
+        else:
+            new_user = User(
+                username=username,
+                password=generate_password_hash(password),
+                is_admin=is_admin
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Пользователь добавлен', 'success')
+            return redirect(url_for('users'))
+    
+    return render_template('add_user.html')  # Убедитесь, что шаблон существует
+
+@app.route('/delete_user/<int:id>')
+def delete_user(id):  # Обратите внимание на имя функции - должно совпадать с url_for('delete_user')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    current_user = User.query.get(session['user_id'])
+    if not current_user.is_admin:
+        flash('Требуются права администратора', 'danger')
+        return redirect(url_for('users'))
+    
+    user_to_delete = User.query.get_or_404(id)
+    
+    # Запрещаем удаление самого себя
+    if user_to_delete.id == current_user.id:
+        flash('Нельзя удалить самого себя', 'danger')
+    else:
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        flash('Пользователь удален', 'success')
+    
+    return redirect(url_for('users'))
 
 @app.route('/logout')
 def logout():
@@ -253,17 +328,15 @@ def action_log():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
+    current_user = User.query.get(session['user_id'])
+    if not current_user.is_admin:
+        flash('Доступ запрещен: требуется права администратора', 'danger')
+        return redirect(url_for('index'))
+    
     logs = ActionLog.query.order_by(ActionLog.timestamp.desc()).all()
     return render_template('action_log.html', logs=logs)
 
-# Управление пользователями
-@app.route('/users')
-def users():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    all_users = User.query.all()
-    return render_template('users.html', users=all_users)
+
 
 if __name__ == '__main__':
     init_db()  # Инициализация БД при запуске

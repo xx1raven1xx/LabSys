@@ -1,3 +1,6 @@
+<!-- В самом начале шаблона -->
+{% set current_user = g.get('current_user') %}
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -47,12 +50,14 @@
                             Учет реактивов
                         </a>
                     </li>
+                    {% if current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'action_log' %}active{% endif %}" 
                            href="{{ url_for('action_log') }}">
-                            Журнал действий
+                            <i class="bi bi-journal-bookmark"></i>Журнал действий
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'users' %}active{% endif %}" 
                            href="{{ url_for('users') }}">
