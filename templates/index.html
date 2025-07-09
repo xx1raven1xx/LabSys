@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Учет реактивов</title>
+</head>
+<body>
+    <h1>Реактивы лаборатории</h1>
+    {% for chem in chemicals %}
+        <div style="border-bottom: 1px solid black; padding: 10px; margin-bottom: 10px;">
+            <strong>{{ chem.name }}</strong> (<em>{{ chem.manufacturer }}, партия №{{ chem.batch_number }}</em>)<br>
+            Количество: {{ chem.quantity }} {{ chem.unit }}<br>
+            Чистый на: {{ chem.purity*100 }}%, стандарт: {{ chem.standard }}, методология: {{ chem.methodology }}<br>
+            Производство: {{ chem.production_date }}, поступление: {{ chem.arrival_date }}, срок годности истекает: {{ chem.expiration_date }}
+            <br>
+            <a href="/edit/{{ chem.id }}">Редактировать</a> |
+            <a href="/delete/{{ chem.id }}">Удалить</a>
+        </div>
+    {% endfor %}
+
+    <form action="/add" method="post">
+        <label for="name">Название:</label>
+        <input type="text" id="name" name="name"><br>
+        <!-- Остальные поля -->
+        <button type="submit">Добавить реактив</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Журнал действий</h2>
+
+{% if logs %}
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Дата/время</th>
+                <th>Пользователь</th>
+                <th>Реактив</th>
+                <th>Действие</th>
+                <th>Изменение количества</th>
+                <th>Детали</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.timestamp | datetime }}</td>
+                <td>{{ log.user.username }}</td>
+                <td>{{ log.reagent.name }}</td>
+                <td>{{ log.action }}</td>
+                <td>{{ "%.3f"|format(log.quantity_change) }}</td>
+                <td>{{ log.details }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Журнал действий пуст
+</div>
+{% endif %}
+{% endblock %}

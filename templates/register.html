@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+</head>
+<body>
+    <h1>Регистрация</h1>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flashes">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+    <form action="/register" method="post">
+        <label for="username">Логин:</label>
+        <input type="text" id="username" name="username"><br>
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" name="password"><br>
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+    <p>Уже зарегистрированы? <a href="/login">Войдите сюда.</a></p>
+</body>
+</html>
